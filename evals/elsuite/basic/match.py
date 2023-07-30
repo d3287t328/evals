@@ -31,8 +31,8 @@ class Match(evals.Eval):
         assert isinstance(sample, dict), "sample must be a dict"
         assert "input" in sample, "sample must have an 'input' key"
         assert "ideal" in sample, "sample must have an 'ideal' key"
-        assert isinstance(sample["ideal"], str) or isinstance(
-            sample["ideal"], list
+        assert isinstance(
+            sample["ideal"], (str, list)
         ), "sample['ideal'] must be a string or list of strings"
 
         prompt = sample["input"]

@@ -24,15 +24,12 @@ def generate_hands(num_players: int, num_community_cards: int) -> tuple:
         tuple: A tuple containing a list of hole cards for each player and a list of community cards.
     """
     deck = Deck()
-    hole_cards = []
     community_cards = []
 
     if num_community_cards > 0:
         community_cards = deck.draw(num_community_cards)
 
-    for i in range(num_players):
-        hole_cards.append(deck.draw(2))
-
+    hole_cards = [deck.draw(2) for _ in range(num_players)]
     return hole_cards, community_cards
 
 def calculate_probabilities(hole_cards_list: list, community_cards: list) -> list:
@@ -131,7 +128,7 @@ def format_example(hole_cards: list, community_cards: list, winning_player: int)
     community_str = "Community: " + ", ".join(
         [Card.int_to_str(card) for card in community_cards]
     )
-    example = {
+    return {
         "input": [
             {
                 "role": "system",
@@ -141,7 +138,6 @@ def format_example(hole_cards: list, community_cards: list, winning_player: int)
         ],
         "ideal": str(winning_player + 1),
     }
-    return example
 
 def save_examples_to_json_file(
     output_file: str, num_examples: int = 100, num_players: int = None, num_community_cards: int = None

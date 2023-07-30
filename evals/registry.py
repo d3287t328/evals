@@ -30,12 +30,6 @@ DEFAULT_PATHS = [Path(__file__).parents[0].resolve() / "registry", Path.home() /
 
 def n_ctx_from_model_name(model_name: str) -> Optional[int]:
     """Returns n_ctx for a given API model name. Model list last updated 2023-06-16."""
-    # note that for most models, the max tokens is n_ctx + 1
-    PREFIX_AND_N_CTX: list[tuple[str, int]] = [
-        ("gpt-3.5-turbo-", 4096),
-        ("gpt-4-32k-", 32768),
-        ("gpt-4-", 8192),
-    ]
     MODEL_NAME_TO_N_CTX: dict[str, int] = {
         "ada": 2048,
         "text-ada-001": 2048,
@@ -53,17 +47,23 @@ def n_ctx_from_model_name(model_name: str) -> Optional[int]:
         "gpt-4-32k": 32768,
     }
 
-    # first, look for an exact match
     if model_name in MODEL_NAME_TO_N_CTX:
         return MODEL_NAME_TO_N_CTX[model_name]
 
-    # otherwise, look for a prefix match
-    for model_prefix, n_ctx in PREFIX_AND_N_CTX:
-        if model_name.startswith(model_prefix):
-            return n_ctx
-
-    # not found
-    return None
+    # note that for most models, the max tokens is n_ctx + 1
+    PREFIX_AND_N_CTX: list[tuple[str, int]] = [
+        ("gpt-3.5-turbo-", 4096),
+        ("gpt-4-32k-", 32768),
+        ("gpt-4-", 8192),
+    ]
+    return next(
+        (
+            n_ctx
+            for model_prefix, n_ctx in PREFIX_AND_N_CTX
+            if model_name.startswith(model_prefix)
+        ),
+        None,
+    )
 
 
 def is_chat_model(model_name: str) -> bool:
@@ -71,10 +71,10 @@ def is_chat_model(model_name: str) -> bool:
     if model_name in CHAT_MODEL_NAMES:
         return True
 
-    for model_prefix in {"gpt-3.5-turbo-", "gpt-4-", "gpt-4-32k-"}:
-        if model_name.startswith(model_prefix):
-            return True
-    return False
+    return any(
+        model_name.startswith(model_prefix)
+        for model_prefix in {"gpt-3.5-turbo-", "gpt-4-", "gpt-4-32k-"}
+    )
 
 
 T = TypeVar("T")
@@ -133,7 +133,7 @@ class Registry:
     def _dereference(
         self, name: str, d: RawRegistry, object: str, type: Type[T], **kwargs: dict
     ) -> Optional[T]:
-        if not name in d:
+        if name not in d:
             logger.warning(
                 (
                     f"{object} '{name}' not found. "
@@ -145,9 +145,7 @@ class Registry:
         def get_alias() -> Optional[str]:
             if isinstance(d[name], str):
                 return d[name]
-            if isinstance(d[name], dict) and "id" in d[name]:
-                return d[name]["id"]
-            return None
+            return d[name]["id"] if isinstance(d[name], dict) and "id" in d[name] else None
 
         logger.debug(f"Looking for {name}")
         while True:
@@ -199,14 +197,15 @@ class Registry:
                 yield self.get_eval(name)
 
     def get_base_evals(self) -> list[Optional[BaseEvalSpec]]:
-        base_evals: list[Optional[BaseEvalSpec]] = []
-        for name, spec in self._evals.items():
-            if name.count(".") == 0:
-                base_evals.append(self.get_base_eval(name))
+        base_evals: list[Optional[BaseEvalSpec]] = [
+            self.get_base_eval(name)
+            for name, spec in self._evals.items()
+            if name.count(".") == 0
+        ]
         return base_evals
 
     def get_base_eval(self, name: str) -> Optional[BaseEvalSpec]:
-        if not name in self._evals:
+        if name not in self._evals:
             return None
 
         spec_or_alias = self._evals[name]
