@@ -109,7 +109,7 @@ def assemble_test_format(n_samples: int) -> list[dict]:
         A list of dictionaries. Each dictionary represents an eval.
     """
     results = []
-    for i in range(n_samples):
+    for _ in range(n_samples):
         start, center, end = random_divisible_line(
             comp_min=COMP_MIN, comp_max=COMP_MAX, n_decimals=N_DECIMALS
         )

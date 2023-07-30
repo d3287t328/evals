@@ -12,10 +12,7 @@ from evals.record import Event
 def get_accuracy(events: Sequence[Event]) -> float:
     num_correct = sum(int(event.data["correct"]) for event in events)
     num_total = len(events)
-    if num_total == 0:
-        return float("nan")
-    else:
-        return num_correct / num_total
+    return float("nan") if num_total == 0 else num_correct / num_total
 
 
 def get_bootstrap_accuracy_std(events: Sequence[Event], num_samples: int = 1000) -> float:
@@ -64,8 +61,9 @@ def compute_f_score(confusion_matrix: np.ndarray, idx: int = 0, beta: float = 1.
 
 
 def compute_averaged_f_score(confusion_matrix: np.ndarray, beta: float = 1.0, average: str = "macro") -> float:
-    assert average in ["macro"]
-    f_scores = []
-    for i in range(confusion_matrix.shape[0]):
-        f_scores.append(compute_f_score(confusion_matrix, idx=i, beta=beta))
+    assert average in {"macro"}
+    f_scores = [
+        compute_f_score(confusion_matrix, idx=i, beta=beta)
+        for i in range(confusion_matrix.shape[0])
+    ]
     return np.array(f_scores).mean()
